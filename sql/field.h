@@ -631,7 +631,14 @@ public:
     return val_date_temporal();
   }
   virtual my_decimal *val_decimal(my_decimal *)= 0;
-  inline String *val_str(String *str) { return val_str(str, str); }
+  inline String *val_str(String *str) { 
+    String* temp = val_str(str, str);
+    FILE *fp;
+    fp = fopen("/home/ahmed/do_command.txt", "a+");
+    fprintf(fp, "In val_str. temp->ptr() = %s, temp->length() = %d\n", temp->ptr(), temp->length());
+    fclose(fp);
+    return temp; 
+  }
   /*
      val_str(buf1, buf2) gets two buffers and should use them as follows:
      if it needs a temp buffer to convert result to string - use buf1

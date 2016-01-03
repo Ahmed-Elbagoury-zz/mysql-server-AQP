@@ -124,7 +124,7 @@ using std::min;
    (LP)->sql_command == SQLCOM_DROP_FUNCTION ? \
    "FUNCTION" : "PROCEDURE")
 
-static bool execute_sqlcom_select(THD *thd, TABLE_LIST *all_tables);
+static bool execute_sqlcom_select(THD *thd, TABLE_LIST *all_tables, double sampling_rate = 1);
 static bool check_show_access(THD *thd, TABLE_LIST *table);
 static void sql_kill(THD *thd, ulong id, bool only_kill_query);
 static bool lock_tables_precheck(THD *thd, TABLE_LIST *tables);
@@ -894,6 +894,21 @@ void cleanup_items(Item *item)
 
 #ifndef EMBEDDED_LIBRARY
 
+std::string& trim_right_inplace(std::string& s, const std::string& delimiters = " \f\n\r\t\v" )
+{
+  return s.erase( s.find_last_not_of( delimiters ) + 1 );
+}
+
+std::string& trim_left_inplace(std::string& s, const std::string& delimiters = " \f\n\r\t\v" )
+{
+  return s.erase( 0, s.find_first_not_of( delimiters ) );
+}
+
+std::string& trim_inplace(std::string& s, const std::string& delimiters = " \f\n\r\t\v" )
+{
+  return trim_left_inplace( trim_right_inplace( s, delimiters ), delimiters );
+}
+
 /**
   Read one command from connection and execute it (query or simple command).
   This function is called in loop from thread function.
@@ -970,6 +985,15 @@ bool do_command(THD *thd)
   packet_length= my_net_read(net);
   thd->m_server_idle= false;
 
+              //***************For the UNDER SMAPLING RATE feature********************//
+  //Creating a string containing the query
+  bool smapling_used = false;
+  double sampling_rate = 1.0;
+  std::string packet_str ((char*)net->read_pos);
+  std::string query_cpy ((char*)net->read_pos);
+  std::string sampling_keyword (UNDER_SAMPLING_RATE);
+  std::size_t sampling_index;
+
   if (packet_length == packet_error)
   {
     DBUG_PRINT("info",("Got error %d reading command from socket %s",
@@ -1003,6 +1027,27 @@ bool do_command(THD *thd)
   }
 
   packet= (char*) net->read_pos;
+  FILE *fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "Query is: %s\n",  packet);
+  fclose(fp);
+  //Converting packet_str to upper case 
+  for (std::string::iterator it = packet_str.begin(); it != packet_str.end(); ++ it)
+    *it = toupper(*it);
+  sampling_index = packet_str.find(sampling_keyword);
+  if (sampling_index != std::string::npos){
+    //The query specify the sampling rate
+    smapling_used = true;
+    //Get the sampling rate
+    query_cpy = query_cpy.substr(sampling_index + UNDER_SAMPLING_RATE_SIZE);
+    sampling_rate = strtod (trim_inplace(query_cpy).c_str(), NULL);
+    ((char*)packet)[sampling_index] = ';';
+    ((char*)packet)[sampling_index+1] = '\0';
+    fp = fopen("/home/ahmed/do_command.txt", "a+");
+    fprintf(fp, "\t Extra key word is detected the query now is %s, rate is %f, sampling_index is %d\n",  (char*)(net->read_pos), sampling_rate, sampling_index);
+    fclose(fp);
+  }
+
   /*
     'packet_length' contains length of data, as it was stored in packet
     header. In case of malformed header, my_net_read returns zero.
@@ -1025,6 +1070,7 @@ bool do_command(THD *thd)
   if (command >= COM_END)
     command= COM_END;				// Wrong command
 
+
   DBUG_PRINT("info",("Command on %s = %d (%s)",
                      vio_description(net->vio), command,
                      command_name[command].str));
@@ -1034,8 +1080,13 @@ bool do_command(THD *thd)
 
   DBUG_ASSERT(packet_length);
 
-  return_value= dispatch_command(command, thd, packet+1, (uint) (packet_length-1));
-
+  //return_value= dispatch_command(command, thd, packet+1, (uint) (packet_length-1 - (smapling_used ? UNDER_SAMPLING_RATE_SIZE : 0)));
+  return_value= dispatch_command(command, thd, packet+1, (uint) (smapling_used ? sampling_index : packet_length-1), sampling_rate);
+  //FILE *fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "Command on %s = %d (%s). return_value = %d, packet_length = %d\n",  vio_description(net->vio), command,
+                     command_name[command].str, return_value, packet_length);
+  fclose(fp);
 out:
   /* The statement instrumentation must be closed in all cases. */
   DBUG_ASSERT(thd->m_digest == NULL);
@@ -1134,13 +1185,16 @@ static my_bool deny_updates_if_read_only_option(THD *thd,
         COM_QUIT/COM_SHUTDOWN
 */
 bool dispatch_command(enum enum_server_command command, THD *thd,
-		      char* packet, uint packet_length)
+		      char* packet, uint packet_length, double sampling_rate)
 {
   NET *net= &thd->net;
   bool error= 0;
   DBUG_ENTER("dispatch_command");
   DBUG_PRINT("info",("packet: '%*.s'; command: %d", packet_length, packet, command));
-
+  FILE *fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In dispatch_command, sampling rate is %f\n", sampling_rate);
+  fclose(fp);
   /* SHOW PROFILE instrumentation, begin */
 #if defined(ENABLED_PROFILING)
   thd->profiling.start_new_query();
@@ -1337,7 +1391,7 @@ bool dispatch_command(enum enum_server_command command, THD *thd,
     if (parser_state.init(thd, thd->query(), thd->query_length()))
       break;
 
-    mysql_parse(thd, thd->query(), thd->query_length(), &parser_state);
+    mysql_parse(thd, thd->query(), thd->query_length(), &parser_state, sampling_rate);
 
     while (!thd->killed && (parser_state.m_lip.found_semicolon != NULL) &&
            ! thd->is_error())
@@ -2283,8 +2337,8 @@ err:
 */
 
 int
-mysql_execute_command(THD *thd)
-{
+mysql_execute_command(THD *thd, double sampling_rate)
+{  
   int res= FALSE;
   int  up_result= 0;
   LEX  *lex= thd->lex;
@@ -2653,7 +2707,7 @@ mysql_execute_command(THD *thd)
     if ((res= select_precheck(thd, lex, all_tables, first_table)))
       break;
 
-    res= execute_sqlcom_select(thd, all_tables);
+    res= execute_sqlcom_select(thd, all_tables, sampling_rate);
     break;
   }
 case SQLCOM_PREPARE:
@@ -3045,6 +3099,7 @@ case SQLCOM_PREPARE:
             CREATE from SELECT give its SELECT_LEX for SELECT,
             and item_list belong to SELECT
           */
+              
           res= handle_select(thd, result, 0);
           delete result;
         }
@@ -5092,7 +5147,7 @@ finish:
   DBUG_RETURN(res || thd->is_error());
 }
 
-static bool execute_sqlcom_select(THD *thd, TABLE_LIST *all_tables)
+static bool execute_sqlcom_select(THD *thd, TABLE_LIST *all_tables, double sampling_rate)
 {
   LEX	*lex= thd->lex;
   select_result *result= lex->result;
@@ -5131,7 +5186,8 @@ static bool execute_sqlcom_select(THD *thd, TABLE_LIST *all_tables)
                new select_analyse(result, lex->proc_analyse)) == NULL)
           return true;
       }
-      res= handle_select(thd, result, 0);
+
+      res= handle_select(thd, result, 0, sampling_rate);
       delete analyse_result;
       if (save_result != lex->result)
         delete save_result;
@@ -6259,7 +6315,7 @@ void mysql_init_multi_delete(LEX *lex)
 */
 
 void mysql_parse(THD *thd, char *rawbuf, uint length,
-                 Parser_state *parser_state)
+                 Parser_state *parser_state, double sampling_rate)
 {
   int error __attribute__((unused));
   DBUG_ENTER("mysql_parse");
@@ -6383,7 +6439,7 @@ void mysql_parse(THD *thd, char *rawbuf, uint length,
             error= 1;
           }
           else
-            error= mysql_execute_command(thd);
+            error= mysql_execute_command(thd, sampling_rate);
           if (error == 0 &&
               thd->variables.gtid_next.type == GTID_GROUP &&
               thd->owned_gtid.sidno != 0 &&

@@ -3145,6 +3145,10 @@ int mysql_real_query_for_lazy(const char *buf, int length)
 
 int mysql_store_result_for_lazy(MYSQL_RES **result)
 {
+  FILE *fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In mysql_store_result_for_lazy\n");
+  fclose(fp);
   if ((*result=mysql_store_result(&mysql)))
     return 0;
 
@@ -3434,6 +3438,10 @@ com_go(String *buffer,char *line __attribute__((unused)))
     }
     else
     {
+      FILE *fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In com_go\n");
+  fclose(fp);
       error= mysql_store_result_for_lazy(&result);
       if (error)
         goto end;
@@ -3700,6 +3708,7 @@ print_table_data(MYSQL_RES *result)
 
   sz= sizeof(bool) * mysql_num_fields(result);
   num_flag= (bool *) my_safe_alloca(sz, MAX_ALLOCA_SIZE);
+
   if (column_types_flag)
   {
     print_field_types(result);
@@ -3708,8 +3717,10 @@ print_table_data(MYSQL_RES *result)
     mysql_field_seek(result,0);
   }
   separator.copy("+",1,charset_info);
+  int counter = 0;
   while ((field = mysql_fetch_field(result)))
   {
+    counter ++;
     uint length= column_names ? field->name_length : 0;
     if (quick)
       length= max<size_t>(length, field->length);
@@ -3721,6 +3732,8 @@ print_table_data(MYSQL_RES *result)
     separator.fill(separator.length()+length+2,'-');
     separator.append('+');
   }
+  
+  
   separator.append('\0');                       // End marker for \0
   tee_puts((char*) separator.ptr(), PAGER);
   if (column_names)
@@ -3795,6 +3808,10 @@ print_table_data(MYSQL_RES *result)
         else 
           tee_print_sized_data(buffer, data_length, field_max_length+extra_padding, FALSE);
       }
+      FILE *fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "Printing results, buffer = %s\n", buffer);
+  fclose(fp);
       tee_fputs(" |", PAGER);
     }
     (void) tee_fputs("\n", PAGER);
@@ -5080,6 +5097,10 @@ server_version_string(MYSQL *con)
 static int
 put_info(const char *str,INFO_TYPE info_type, uint error, const char *sqlstate)
 {
+  FILE *fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In put_info, str = %s, sqlstate = %s\n", str, sqlstate);
+  fclose(fp);
   FILE *file= (info_type == INFO_ERROR ? stderr : stdout);
   static int inited=0;
 
@@ -5115,6 +5136,9 @@ put_info(const char *str,INFO_TYPE info_type, uint error, const char *sqlstate)
   }
   if (!opt_silent || info_type == INFO_ERROR)
   {
+    fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "It is !opt_silent || INFO_ERROR, %d\n", info_type == INFO_ERROR);
+  fclose(fp);
     if (!inited)
     {
       inited=1;
@@ -5139,6 +5163,9 @@ put_info(const char *str,INFO_TYPE info_type, uint error, const char *sqlstate)
     }
     else
       vidattr(A_BOLD);
+    fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "str = %s\n", str);
+  fclose(fp);
     (void) tee_puts(str, file);
     vidattr(A_NORMAL);
   }
@@ -5263,11 +5290,16 @@ void tee_fprintf(FILE *file, const char *fmt, ...)
 */
 void tee_fputs(const char *s, FILE *file)
 {
+   FILE *fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In tee_fputs %s\n", s);
+  fclose(fp);
 #ifdef __WIN__
   if (my_win_is_console_cached(file))
     my_win_console_fputs(charset_info, s);
   else
 #endif
+
   fputs(s, file);
   if (opt_outfile)
     fputs(s, OUTFILE);

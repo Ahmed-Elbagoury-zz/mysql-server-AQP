@@ -1310,14 +1310,14 @@ protected:
 
 bool error_if_full_join(JOIN *join);
 bool handle_select(THD *thd, select_result *result,
-                   ulong setup_tables_done_option);
+                   ulong setup_tables_done_option, double sampling_rate = 1);
 bool mysql_select(THD *thd,
                   TABLE_LIST *tables, uint wild_num,  List<Item> &list,
                   Item *conds, SQL_I_List<ORDER> *order,
                   SQL_I_List<ORDER> *group,
                   Item *having, ulonglong select_type, 
                   select_result *result, SELECT_LEX_UNIT *unit, 
-                  SELECT_LEX *select_lex);
+                  SELECT_LEX *select_lex, double sampling_rate = 1);
 void free_underlaid_joins(THD *thd, SELECT_LEX *select);
 
 

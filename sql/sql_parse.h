@@ -19,6 +19,15 @@
 #include "my_global.h"                          /* NO_EMBEDDED_ACCESS_CHECKS */
 #include "sql_acl.h"                            /* GLOBAL_ACLS */
 
+#define UNDER_SAMPLING_RATE "UNDER SAMPLING RATE"
+#define UNDER_SAMPLING_RATE_SIZE 19
+#include <string>
+#include <cstdio>
+#include <cctype>
+#include <iostream>
+#include <stdlib.h>     /* strtod */
+
+
 class Comp_creator;
 class Item;
 class Object_creation_ctx;
@@ -92,7 +101,7 @@ bool is_log_table_write_query(enum enum_sql_command command);
 bool alloc_query(THD *thd, const char *packet, uint packet_length);
 void mysql_init_select(LEX *lex);
 void mysql_parse(THD *thd, char *rawbuf, uint length,
-                 Parser_state *parser_state);
+                 Parser_state *parser_state, double sampling_rate = 1.0);
 void mysql_reset_thd_for_next_command(THD *thd);
 bool mysql_new_select(LEX *lex, bool move_down);
 void create_select_for_variable(const char *var_name);
@@ -101,11 +110,11 @@ void mysql_init_multi_delete(LEX *lex);
 bool multi_delete_set_locks_and_link_aux_tables(LEX *lex);
 void create_table_set_open_action_and_adjust_tables(LEX *lex);
 pthread_handler_t handle_bootstrap(void *arg);
-int mysql_execute_command(THD *thd);
+int mysql_execute_command(THD *thd, double sampling_rate = 1);
 bool do_command(THD *thd);
 void do_handle_bootstrap(THD *thd);
 bool dispatch_command(enum enum_server_command command, THD *thd,
-		      char* packet, uint packet_length);
+		      char* packet, uint packet_length, double sampling_rate = 1);
 void log_slow_statement(THD *thd);
 bool log_slow_applicable(THD *thd);
 void log_slow_do(THD *thd);

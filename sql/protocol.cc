@@ -80,11 +80,19 @@ bool Protocol::net_store_data(const uchar *from, size_t length,
                               const CHARSET_INFO *from_cs,
                               const CHARSET_INFO *to_cs)
 {
+
+  FILE* fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In net_store_data\n");
+  fclose(fp); 
   uint dummy_errors;
   /* Calculate maxumum possible result length */
   uint conv_length= to_cs->mbmaxlen * length / from_cs->mbminlen;
   if (conv_length > 250)
   {
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In net_store_data. conv_length > 250\n");
+  fclose(fp); 
     /*
       For strings with conv_length greater than 250 bytes
       we don't know how many bytes we will need to store length: one or two,
@@ -101,8 +109,13 @@ bool Protocol::net_store_data(const uchar *from, size_t length,
             net_store_data((const uchar*) convert->ptr(), convert->length()));
   }
 
+
   ulong packet_length= packet->length();
   ulong new_length= packet_length + conv_length + 1;
+
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In net_store_data. packet_length = %ld, new_length = %ld > 250\n", packet_length, new_length);
+  fclose(fp); 
 
   if (new_length > packet->alloced_length() && packet->realloc(new_length))
     return 1;
@@ -110,9 +123,16 @@ bool Protocol::net_store_data(const uchar *from, size_t length,
   char *length_pos= (char*) packet->ptr() + packet_length;
   char *to= length_pos + 1;
 
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In net_store_data. length_pos = %s, to = %s\n", length_pos, to);
+  fclose(fp); 
+
   to+= copy_and_convert(to, conv_length, to_cs,
                         (const char*) from, length, from_cs, &dummy_errors);
 
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In net_store_data. to = %s\n", to);
+  fclose(fp); 
   net_store_length((uchar*) length_pos, to - length_pos - 1);
   packet->length((uint) (to - packet->ptr()));
   return 0;
@@ -584,6 +604,10 @@ bool Protocol::send_error(uint sql_errno, const char *err_msg,
 
 uchar *net_store_data(uchar *to, const uchar *from, size_t length)
 {
+  FILE* fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In net_store_data!!\n");
+  fclose(fp);
   to=net_store_length_fast(to,length);
   memcpy(to,from,length);
   return to+length;
@@ -591,19 +615,37 @@ uchar *net_store_data(uchar *to, const uchar *from, size_t length)
 
 uchar *net_store_data(uchar *to,int32 from)
 {
+  FILE* fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In net_store_data int32\n");
+  fclose(fp);
+
   char buff[20];
   uint length=(uint) (int10_to_str(from,buff,10)-buff);
   to=net_store_length_fast(to,length);
   memcpy(to,buff,length);
+  
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In net_store_data int32\n");
+  fclose(fp);
   return to+length;
 }
 
 uchar *net_store_data(uchar *to,longlong from)
 {
+  FILE* fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In net_store_data longlong\n");
+  fclose(fp);
+
   char buff[22];
   uint length=(uint) (longlong10_to_str(from,buff,10)-buff);
   to=net_store_length_fast(to,length);
   memcpy(to,buff,length);
+  
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In net_store_data longlong\n");
+  fclose(fp);
   return to+length;
 }
 
@@ -833,7 +875,6 @@ bool Protocol::write()
     @retval TRUE  Error.
     @retval FALSE Success.
 */
-
 bool Protocol::send_result_set_row(List<Item> *row_items)
 {
   char buffer[MAX_FIELD_WIDTH];
@@ -844,6 +885,23 @@ bool Protocol::send_result_set_row(List<Item> *row_items)
 
   for (Item *item= it++; item; item= it++)
   {
+    String *res;
+    String buffer_cpy(buffer, sizeof (buffer), &my_charset_bin);
+
+    int string_length = item->str_value.length();
+    if ((res=item->val_str(&buffer_cpy))){
+      FILE* fp;
+      fp = fopen("/home/ahmed/do_command.txt", "a+");
+      fprintf(fp, "Before calling Item::send %s, %d\n", res->Ptr, string_length);
+      fclose(fp);
+    }
+
+    // if ((res=item->val_str(&buffer_cpy))){
+    //     res->length(string_length);
+    //     fp = fopen("/home/ahmed/do_command.txt", "a+");
+    //     fprintf(fp, "Before calling Item::send, res->ptr() = %s, %d\n", res->ptr(), item->str_value.length());
+    //     fclose(fp);
+    // }
     if (item->send(this, &str_buffer))
     {
       // If we're out of memory, reclaim some, to help us recover.
@@ -949,6 +1007,12 @@ bool Protocol::store_string_aux(const char *from, size_t length,
                                 const CHARSET_INFO *fromcs,
                                 const CHARSET_INFO *tocs)
 {
+  // if(length == 2)
+  //   length = 5;
+  FILE* fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In Protocol::store_string_aux, from = %s, length = %d\n", from, length);
+  fclose(fp);
   /* 'tocs' is set 0 when client issues SET character_set_results=NULL */
   if (tocs && !my_charset_same(fromcs, tocs) &&
       fromcs != &my_charset_bin &&
@@ -983,19 +1047,23 @@ bool Protocol_text::store(const char *from, size_t length,
                           const CHARSET_INFO *fromcs)
 {
   const CHARSET_INFO *tocs= this->thd->variables.character_set_results;
-#ifndef DBUG_OFF
-  DBUG_PRINT("info", ("Protocol_text::store field %u (%u): %.*s", field_pos,
-                      field_count, (int) length, (length == 0 ? "" : from)));
-  DBUG_ASSERT(field_pos < field_count);
-  DBUG_ASSERT(field_types == 0 ||
-	      field_types[field_pos] == MYSQL_TYPE_DECIMAL ||
-              field_types[field_pos] == MYSQL_TYPE_BIT ||
-              field_types[field_pos] == MYSQL_TYPE_NEWDECIMAL ||
-              field_types[field_pos] == MYSQL_TYPE_NEWDATE ||
-	      (field_types[field_pos] >= MYSQL_TYPE_ENUM &&
-	       field_types[field_pos] <= MYSQL_TYPE_GEOMETRY));
-  field_pos++;
-#endif
+// #ifndef DBUG_OFF
+//   DBUG_PRINT("info", ("Protocol_text::store field %u (%u): %.*s", field_pos,
+//                       field_count, (int) length, (length == 0 ? "" : from)));
+//   DBUG_ASSERT(field_pos < field_count);
+//   DBUG_ASSERT(field_types == 0 ||
+// 	      field_types[field_pos] == MYSQL_TYPE_DECIMAL ||
+//               field_types[field_pos] == MYSQL_TYPE_BIT ||
+//               field_types[field_pos] == MYSQL_TYPE_NEWDECIMAL ||
+//               field_types[field_pos] == MYSQL_TYPE_NEWDATE ||
+// 	      (field_types[field_pos] >= MYSQL_TYPE_ENUM &&
+// 	       field_types[field_pos] <= MYSQL_TYPE_GEOMETRY));
+//   field_pos++;
+// #endif
+    FILE* fp;
+          fp = fopen("/home/ahmed/do_command.txt", "a+");
+          fprintf(fp, "In Protocol_text::store\n");
+          fclose(fp); 
   return store_string_aux(from, length, fromcs, tocs);
 }
 
@@ -1044,12 +1112,25 @@ bool Protocol_text::store_long(longlong from)
 
 bool Protocol_text::store_longlong(longlong from, bool unsigned_flag)
 {
-#ifndef DBUG_OFF
-  DBUG_ASSERT(field_types == 0 ||
-	      field_types[field_pos] == MYSQL_TYPE_LONGLONG);
-  field_pos++;
-#endif
+  FILE* fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In Protocol_text::store_longlong, %d, %ld, %ld\n", field_pos, field_types[field_pos], MYSQL_TYPE_LONGLONG);
+  fclose(fp);  
+// #ifndef DBUG_OFF
+//   fp = fopen("/home/ahmed/do_command.txt", "a+");
+//   fprintf(fp, "In Protocol_text::store_longlong. Before calling net_store_data\n");
+//   fclose(fp);  
+//   DBUG_ASSERT(field_types == 0 ||
+// 	      field_types[field_pos] == MYSQL_TYPE_LONGLONG);
+//   field_pos++;
+// #endif
   char buff[22];
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In Protocol_text::store_longlong. Before calling net_store_data %d\n", (size_t) (longlong10_to_str(from,buff,
+                                                    unsigned_flag ? 10 : -10)-
+                                  buff));
+  fclose(fp);  
+  
   return net_store_data((uchar*) buff,
 			(size_t) (longlong10_to_str(from,buff,
                                                     unsigned_flag ? 10 : -10)-
@@ -1111,8 +1192,12 @@ bool Protocol_text::store(Field *field)
   if (table->file)
     old_map= dbug_tmp_use_all_columns(table, table->read_set);
 #endif
-
+  // str.length(5);
   field->val_str(&str);
+  FILE *fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In Protocol_text::store %s. str.length() = %d. sizeof(buff) = %d\n", str.ptr(), str.length(), sizeof(buff));
+  fclose(fp);
 #ifndef DBUG_OFF
   if (old_map)
     dbug_tmp_restore_column_map(table->read_set, old_map);
@@ -1315,7 +1400,7 @@ bool Protocol_binary::store_longlong(longlong from, bool unsigned_flag)
   field_pos++;
   char *to= packet->prep_append(8, PACKET_BUFFER_EXTRA_ALLOC);
   if (!to)
-    return 1;
+    return 1; 
   int8store(to, from);
   return 0;
 }

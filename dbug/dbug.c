@@ -128,6 +128,7 @@
 
 #define TRACING (cs->stack->flags & TRACE_ON)
 #define DEBUGGING (cs->stack->flags & DEBUG_ON)
+//#define DEBUGGING 1
 #define PROFILING (cs->stack->flags & PROFILE_ON)
 
 /*

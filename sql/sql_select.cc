@@ -72,7 +72,7 @@ static void push_index_cond(JOIN_TAB *tab, uint keyno, bool other_tbls_ok,
 */
 
 bool handle_select(THD *thd, select_result *result,
-                   ulong setup_tables_done_option)
+                   ulong setup_tables_done_option, double sampling_rate)
 {
   bool res;
   LEX *lex= thd->lex;
@@ -107,7 +107,7 @@ bool handle_select(THD *thd, select_result *result,
 		      select_lex->having,
 		      select_lex->options | thd->variables.option_bits |
                       setup_tables_done_option,
-		      result, unit, select_lex);
+		      result, unit, select_lex, sampling_rate);
   }
   DBUG_PRINT("info",("res: %d  report_error: %d", res,
 		     thd->is_error()));
@@ -1076,7 +1076,7 @@ mysql_prepare_select(THD *thd,
 */
 
 static bool
-mysql_execute_select(THD *thd, SELECT_LEX *select_lex, bool free_join)
+mysql_execute_select(THD *thd, SELECT_LEX *select_lex, bool free_join, double sampling_rate = 1)
 {
   bool err;
   JOIN* join= select_lex->join;
@@ -1097,8 +1097,9 @@ mysql_execute_select(THD *thd, SELECT_LEX *select_lex, bool free_join)
     join->explain();
     free_join= false;
   }
-  else
-    join->exec();
+  else{
+    join->exec(sampling_rate);
+  }
 
 err:
   if (free_join)
@@ -1156,7 +1157,7 @@ mysql_select(THD *thd,
              Item *conds, SQL_I_List<ORDER> *order, SQL_I_List<ORDER> *group,
              Item *having, ulonglong select_options,
              select_result *result, SELECT_LEX_UNIT *unit,
-             SELECT_LEX *select_lex)
+             SELECT_LEX *select_lex, double sampling_rate)
 {
   bool free_join= true;
   uint og_num= 0;
@@ -1219,7 +1220,7 @@ mysql_select(THD *thd,
     query_cache_store_query(thd, thd->lex->query_tables);
   }
 
-  DBUG_RETURN(mysql_execute_select(thd, select_lex, free_join));
+  DBUG_RETURN(mysql_execute_select(thd, select_lex, free_join, sampling_rate));
 }
 
 /*****************************************************************************

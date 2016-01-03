@@ -2511,6 +2511,12 @@ void select_send::cleanup()
 
 bool select_send::send_data(List<Item> &items)
 {
+
+FILE* fp;
+fp = fopen("/home/ahmed/do_command.txt", "a+");
+fprintf(fp, "select_send::send_data\n");
+fclose(fp);  
+
   Protocol *protocol= thd->protocol;
   DBUG_ENTER("select_send::send_data");
 

@@ -18,6 +18,11 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
 
 /** @file Classes for query execution */
+#include <list>
+#include <map>
+#include <string>     // std::string, std::to_string
+#include <sstream>   
+
 
 #include "records.h"                          /* READ_RECORD */
 

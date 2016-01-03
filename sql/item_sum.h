@@ -331,6 +331,7 @@ private:
   bool with_distinct;
 
 public:
+  Item **args, *tmp_args[2];
 
   bool has_force_copy_fields() const { return force_copy_fields; }
   bool has_with_distinct()     const { return with_distinct; }
@@ -360,7 +361,6 @@ public:
 
 protected:  
   uint arg_count;
-  Item **args, *tmp_args[2];
   table_map used_tables_cache;
   bool forced_const;
   static ulonglong ram_limitation(THD *thd);
@@ -721,12 +721,13 @@ class Item_sum_sum :public Item_sum_num
 {
 protected:
   Item_result hybrid_type;
-  double sum;
+  
   my_decimal dec_buffs[2];
   uint curr_dec_buff;
   void fix_length_and_dec();
 
 public:
+  double sum;
   Item_sum_sum(Item *item_par, bool distinct) :Item_sum_num(item_par) 
   {
     set_distinct(distinct);

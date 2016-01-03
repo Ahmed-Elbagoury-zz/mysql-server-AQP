@@ -34,11 +34,12 @@ inline uint32 copy_and_convert(char *to, uint32 to_length,
 
 class String
 {
-  char *Ptr;
+  
   uint32 str_length,Alloced_length;
   bool alloced;
   const CHARSET_INFO *str_charset;
 public:
+  char *Ptr;
   String()
   { 
     Ptr=0; str_length=Alloced_length=0; alloced=0; 

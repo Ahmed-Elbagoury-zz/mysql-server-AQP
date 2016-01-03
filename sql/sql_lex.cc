@@ -33,6 +33,7 @@
 #include "sql_select.h"                // JOIN
 #include "sql_optimizer.h"             // JOIN
 #include <mysql/psi/mysql_statement.h>
+#include "sql_yacc.h"
 
 static int lex_one_token(YYSTYPE *yylval, THD *thd);
 

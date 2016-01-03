@@ -28,6 +28,9 @@
 */
 
 #include "opt_explain_format.h"
+#include <list>
+#include <map>
+#include <string>     // std::string, std::to_string   
 
 typedef struct st_sargable_param
 {
@@ -50,6 +53,13 @@ class JOIN :public Sql_alloc
   JOIN(const JOIN &rhs);                        /**< not implemented */
   JOIN& operator=(const JOIN &rhs);             /**< not implemented */
 public:
+  //For query sampling
+  std::map<std::string, int>N_c; //Number of tuples in smaller sample satisfying the condition
+  std::map<std::string, int>N;   //Number of tuples in the orgiginal tuples. N = |D|
+  std::map<std::string, int>n;   //Number of tuples in the sample tuples. n = |S|
+  std::map<std::string, double> std_values; //Standrad deviation
+  std::map<std::string, double> X_c_bar;
+
   JOIN_TAB *join_tab,**best_ref;
   JOIN_TAB **map2table;    ///< mapping between table indexes and JOIN_TABs
   TABLE    **table;
@@ -484,7 +494,7 @@ public:
               SELECT_LEX *select, SELECT_LEX_UNIT *unit);
   int optimize();
   void reset();
-  void exec();
+  void exec(double sampling_rate = 1);
   bool prepare_result(List<Item> **columns_list);
   bool explain();
   bool destroy();

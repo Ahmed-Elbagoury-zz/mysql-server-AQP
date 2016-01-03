@@ -38,7 +38,6 @@
 class Simple_cstring
 {
 private:
-  const char *m_str;
   size_t m_length;
 protected:
   /**
@@ -54,6 +53,7 @@ protected:
     m_length= length_arg;
   }
 public:
+  const char *m_str;
   Simple_cstring()
   {
     set(NULL, 0);
@@ -139,11 +139,12 @@ uint convert_to_printable(char *to, size_t to_len,
 
 class String
 {
-  char *Ptr;
+  
   uint32 str_length,Alloced_length;
   bool alloced;
   const CHARSET_INFO *str_charset;
 public:
+  char *Ptr;
   String()
   { 
     Ptr=0; str_length=Alloced_length=0; alloced=0; 

@@ -477,8 +477,14 @@ static int rr_index_desc(READ_RECORD *info)
 int rr_sequential(READ_RECORD *info)
 {
   int tmp;
+  //FILE *fp;
+  //fp = fopen("/home/ahmed/rr_sequential.txt", "w+");
+  //fprintf(fp, "The file has just been open\n");
+  //int count = 0;
   while ((tmp=info->table->file->ha_rnd_next(info->record)))
   {
+    //count ++;
+    //fprintf(fp, "count = %d, tmp = %d\n", count, tmp);
     /*
       ha_rnd_next can return RECORD_DELETED for MyISAM when one thread is
       reading and another deleting without locks.
@@ -489,7 +495,7 @@ int rr_sequential(READ_RECORD *info)
       break;
     }
   }
-  return tmp;
+  //fclose(fp);
 }
 
 

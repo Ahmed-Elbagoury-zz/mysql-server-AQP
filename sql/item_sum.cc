@@ -1402,6 +1402,7 @@ void Item_sum_sum::fix_length_and_dec()
 bool Item_sum_sum::add()
 {
   DBUG_ENTER("Item_sum_sum::add");
+
   if (hybrid_type == DECIMAL_RESULT)
   {
     my_decimal value;
@@ -1798,10 +1799,19 @@ static double variance_fp_recurrence_result(double s, ulonglong count, bool is_s
   if (count == 1)
     return 0.0;
 
-  if (is_sample_variance)
+  if (is_sample_variance){
+    FILE *fp;
+    fp = fopen("/home/ahmed/do_command.txt", "a+");
+    fprintf(fp, "In variance_fp_recurrence_result in if %f\n", s/(count-1));
+    fclose(fp);
     return s / (count - 1);
+  }
 
   /* else, is a population variance */
+  FILE *fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In variance_fp_recurrence_result in else %d\n", s/(count));
+  fclose(fp);
   return s / count;
 }
 
@@ -1957,6 +1967,11 @@ void Item_sum_variance::update_field()
   float8get(field_recurrence_m, res);
   float8get(field_recurrence_s, res + sizeof(double));
   field_count=sint8korr(res+sizeof(double)*2);
+
+  FILE *fp;
+    fp = fopen("/home/ahmed/do_command.txt", "a+");
+    fprintf(fp, "Item_sum_variance::update_field %f\n", nr);
+    fclose(fp);
 
   variance_fp_recurrence_next(&field_recurrence_m, &field_recurrence_s, &field_count, nr);
 
@@ -2460,22 +2475,53 @@ void Item_sum_avg::update_field()
 {
   longlong field_count;
   uchar *res=result_field->ptr;
+  uchar *A;
+  long temp = 0;
+
+// FILE *fp;
+// fp = fopen("/home/ahmed/do_command.txt", "a+");
+// fprintf(fp, "res: %d. count = %d. Field name = %s\n",  (*(int*)res), this->count, result_field->field_name);
+// fclose(fp);
 
   DBUG_ASSERT (aggr->Aggrtype() != Aggregator::DISTINCT_AGGREGATOR);
 
   if (hybrid_type == DECIMAL_RESULT)
   {
     my_decimal value, *arg_val= args[0]->val_decimal(&value);
+    // fp = fopen("/home/ahmed/do_command.txt", "a+");
+    // fprintf(fp, "arg_val: %d, %d, %d\n",  arg_val->intg, arg_val->frac, arg_val->len);
+    // fclose(fp);
     if (!args[0]->null_value)
     {
       binary2my_decimal(E_DEC_FATAL_ERROR, res,
                         dec_buffs + 1, f_precision, f_scale);
+      // fp = fopen("/home/ahmed/do_command.txt", "a+");
+      // fprintf(fp, "sum = %f, field_count = %d. dec_bin_size = %d. dec_buffs = %d\n", sum, field_count, dec_bin_size, dec_buffs);
+      // fclose(fp);
+
+      // A = res + dec_bin_size;
+      // temp = ((ulonglong)(((uint32) ((uchar) (A)[0])) +
+      //       (((uint32) ((uchar) (A)[1])) << 8) +
+      //       (((uint32) ((uchar) (A)[2])) << 16) +
+      //       (((uint32) ((uchar) (A)[3])) << 24)) +
+      // (((ulonglong) (((uint32) ((uchar) (A)[4])) +
+      //       (((uint32) ((uchar) (A)[5])) << 8) +
+      //       (((uint32) ((uchar) (A)[6])) << 16) +
+      //       (((uint32) ((uchar) (A)[7])) << 24))) <<32));
+      // fp = fopen("/home/ahmed/do_command.txt", "a+");
+      // fprintf(fp, "result = %d.\n",  temp);
+      // fclose(fp);
+
       field_count= sint8korr(res + dec_bin_size);
+      // fp = fopen("/home/ahmed/do_command.txt", "a+");
+      // fprintf(fp, "arg_val = %f, field_count = %d. dec_bin_size = %d. dec_buffs = %d\n", sum, field_count, dec_bin_size, dec_buffs);
+      // fclose(fp);
       my_decimal_add(E_DEC_FATAL_ERROR, dec_buffs, arg_val, dec_buffs + 1);
       my_decimal2binary(E_DEC_FATAL_ERROR, dec_buffs,
                         res, f_precision, f_scale);
       res+= dec_bin_size;
       field_count++;
+
       int8store(res, field_count);
     }
   }
@@ -2483,7 +2529,7 @@ void Item_sum_avg::update_field()
   {
     double nr;
 
-    nr= args[0]->val_real();
+    nr= args[0]->val_real(); 
     if (!args[0]->null_value)
     {
       double old_nr;

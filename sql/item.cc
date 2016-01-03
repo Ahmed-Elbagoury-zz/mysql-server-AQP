@@ -6841,6 +6841,15 @@ bool Item::send(Protocol *protocol, String *buffer)
 {
   bool UNINIT_VAR(result);                       // Will be set if null_value == 0
   enum_field_types f_type;
+FILE* fp;
+fp = fopen("/home/ahmed/do_command.txt", "a+");
+fprintf(fp, "In Item::send\n");
+fclose(fp);
+
+fp = fopen("/home/ahmed/do_command.txt", "a+");
+fprintf(fp, "In Item::send. field_type() = %d\n", field_type());
+fclose(fp);
+
 
   switch ((f_type=field_type())) {
   default:
@@ -6859,14 +6868,33 @@ bool Item::send(Protocol *protocol, String *buffer)
   case MYSQL_TYPE_BIT:
   case MYSQL_TYPE_NEWDECIMAL:
   {
-    String *res;
-    if ((res=val_str(buffer)))
-      result= protocol->store(res->ptr(),res->length(),res->charset());
-    else
-    {
-      DBUG_ASSERT(null_value);
-    }
-    break;
+        String *res;
+        if ((res=val_str(buffer))){
+          if(add_sampling){
+            FILE* fp;
+            char * cur_str = res->Ptr;
+            char* char_ptr = sampling_std;
+            int ind = res->length();
+            // cur_str[ind++] = ' ';
+            // cur_str[ind++] = '(';
+            for(int i = 0; i <= sampling_std_size; i++){
+              cur_str[ind++] = (*char_ptr++);
+            }
+            // cur_str[ind-1] = ')';
+            cur_str[ind-1] = '\0';
+            res->length(res->length() + sampling_std_size);
+            fp = fopen("/home/ahmed/do_command.txt", "a+");
+            fprintf(fp, "In Item::send. MYSQL_TYPE_NEWDECIMAL. res->ptr() = %s. %d\n", res->ptr(), res->length());
+            fprintf(fp, "In Item::send. MYSQL_TYPE_NEWDECIMAL %s, %d, %d\n", sampling_std, ind, sampling_std_size);
+            fclose(fp);
+          }
+        result= protocol->store(res->ptr(),res->length(),res->charset());
+      }
+      else
+      {
+        DBUG_ASSERT(null_value);
+      }
+      break;
   }
   case MYSQL_TYPE_TINY:
   {
@@ -6896,10 +6924,26 @@ bool Item::send(Protocol *protocol, String *buffer)
   }
   case MYSQL_TYPE_LONGLONG:
   {
+
+    
+  FILE* fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  fprintf(fp, "In Item::send. MYSQL_TYPE_LONGLONG.\n");
+  fclose(fp);
+
+
     longlong nr;
     nr= val_int();
-    if (!null_value)
+    if (!null_value){
+      fp = fopen("/home/ahmed/do_command.txt", "a+");
+      fprintf(fp, "In Item::send. before calling store_longlong  = %ld, unsigned_flag = %d.\n", nr, unsigned_flag);
+      fclose(fp);
       result= protocol->store_longlong(nr, unsigned_flag);
+      
+      fp = fopen("/home/ahmed/do_command.txt", "a+");
+      fprintf(fp, "In Item::send. after calling store_longlong.\n");
+      fclose(fp);
+    }
     break;
   }
   case MYSQL_TYPE_FLOAT:
@@ -7048,6 +7092,12 @@ Item* Item_field::item_field_by_name_transformer(uchar *arg)
 
 bool Item_field::send(Protocol *protocol, String *buffer)
 {
+  FILE* fp;
+  fp = fopen("/home/ahmed/do_command.txt", "a+");
+  // uint* uint_ptr = (uint*)(result_field->ptr);
+  result_field->ptr[0] = 5;
+  fprintf(fp, "In Item_field::send, buffer = %s. length = %d. result_field.ptr = %s. %d\n", buffer, str_value.length(), result_field->ptr,(uint)(*(result_field->ptr)));
+  fclose(fp);
   return protocol->store(result_field);
 }
 
