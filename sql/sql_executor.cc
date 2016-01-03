@@ -4805,6 +4805,7 @@ QEP_tmp_table::end_send()
   fprintf(fp, "\t\t\tAt the beginning of end_send, Number of rows = %d\n", join->send_records);
   fclose(fp);
 
+
   // All records were stored, send them further
   int tmp, new_errno= 0;
 
