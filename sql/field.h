@@ -633,10 +633,6 @@ public:
   virtual my_decimal *val_decimal(my_decimal *)= 0;
   inline String *val_str(String *str) { 
     String* temp = val_str(str, str);
-    FILE *fp;
-    fp = fopen("/home/ahmed/do_command.txt", "a+");
-    fprintf(fp, "In val_str. temp->ptr() = %s, temp->length() = %d\n", temp->ptr(), temp->length());
-    fclose(fp);
     return temp; 
   }
   /*

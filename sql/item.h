@@ -2602,12 +2602,8 @@ public:
     { max_length=length; fixed= 1; }
   Item_int(longlong i,uint length= MY_INT64_NUM_DECIMAL_DIGITS)
     :value(i)
-    { max_length=length; fixed= 1; 
-      FILE* fp;
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "In Item_int %ld\n", i);
-      fclose(fp);  
-
+    { 
+      max_length=length; fixed= 1; 
     }
   Item_int(ulonglong i, uint length= MY_INT64_NUM_DECIMAL_DIGITS)
     :value((longlong)i)

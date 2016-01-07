@@ -4190,10 +4190,6 @@ mysql_real_query(MYSQL *mysql, const char *query, ulong length)
 
 MYSQL_RES * STDCALL mysql_store_result(MYSQL *mysql)
 {
-  FILE *fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "In mysql_store_result %d\n", mysql->field_count);
-  fclose(fp);
   MYSQL_RES *result;
   DBUG_ENTER("mysql_store_result");
 

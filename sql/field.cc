@@ -7236,10 +7236,6 @@ String *Field_varstring::val_str(String *val_buffer __attribute__((unused)),
   uint length=  length_bytes == 1 ? (uint) *ptr : uint2korr(ptr);
   // uint length = val_buffer->length();
   val_ptr->set((const char*) ptr+length_bytes, length, field_charset);
-  FILE *fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "In Field_varstring::val_str ptr = %s, length = %d. length_bytes = %d. (uint) *ptr = %d. val_buffer->length() = %d\n", (char*) ptr+length_bytes, length, length_bytes, (uint) *ptr, val_buffer->length());
-  fclose(fp);
   return val_ptr;
 }
 

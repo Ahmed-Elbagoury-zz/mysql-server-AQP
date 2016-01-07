@@ -487,15 +487,8 @@ static void
 update_tmptable_sum_func(Item_sum **func_ptr,
 			 TABLE *tmp_table __attribute__((unused)))
 {
-  FILE *fp;
-  // fp = fopen("/home/ahmed/do_command.txt", "a+");
-  // fprintf(fp, "In update_tmptable_sum_func\n");
-  // fclose(fp);
   Item_sum *func;
-  while ((func= *(func_ptr++))){
-    fp = fopen("/home/ahmed/do_command.txt", "a+");
-    fprintf(fp, "In update_tmptable_sum_func, while loop\n");
-    fclose(fp);    
+  while ((func= *(func_ptr++))){  
     func->update_field();
   }
 }
@@ -602,10 +595,6 @@ copy_funcs(Item **func_ptr, const THD *thd)
 static enum_nested_loop_state 
 end_sj_materialize(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
 {
-  FILE* fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "Someone is calling end_sj_materialize\n");
-  fclose(fp);
   int error;
   THD *thd= join->thd;
   Semijoin_mat_exec *sjm= join_tab[-1].sj_mat_exec;
@@ -931,10 +920,6 @@ do_select(JOIN *join, double sampling_rate)
       join->clear();
 
       if (!join->having || join->having->val_int()){
-        FILE* fp;
-fp = fopen("/home/ahmed/do_command.txt", "a+");
-fprintf(fp, "Before calling send_data in do_select\n");
-fclose(fp);  
         rc= join->result->send_data(*join->fields);
       }
 
@@ -951,42 +936,19 @@ fclose(fp);
   }
   else
   {
-    // if(sampling_rate != 1){
-      FILE* fp;
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\tIn do_select. before calling first_select first time! sampling_rate = %f\n", sampling_rate);
-      fclose(fp);
-    // }
     JOIN_TAB *join_tab= join->join_tab + join->const_tables;
     DBUG_ASSERT(join->primary_tables);
     global_sampling_rate = sampling_rate;
 
     error= join->first_select(join,join_tab,0);
 
-    // FILE* fp;
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\tIn do_select. After calling first_select first time! sampling_rate = %f\n", sampling_rate);
-      fclose(fp);
     if (error >= NESTED_LOOP_OK){
-      // FILE* fp;
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\tIn do_select. Before calling first_select second time! sampling_rate = %f\n", sampling_rate);
-      fprintf(fp, "\tIn do_select. Number of rows %d. sort_and_group = %d\n", join->send_records, join->sort_and_group);
-      fclose(fp);
       error= join->first_select(join,join_tab,1);
-      FILE* fp;
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\tIn do_select. After calling first_select second time! sampling_rate = %f\n", sampling_rate);
-      fclose(fp);
     }
     global_sampling_rate = 1;
   }
 
   join->thd->limit_found_rows= join->send_records;
-  FILE* fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "\tIn do_select. Number of rows %d. sort_and_group = %d\n", join->send_records, join->sort_and_group);
-  fclose(fp);
   /*
     For "order by with limit", we cannot rely on send_records, but need
     to use the rowcount read originally into the join_tab applying the
@@ -1086,10 +1048,6 @@ long global_group_by_count = 0;
 enum_nested_loop_state
 sub_select_op(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
 {
-  FILE* fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "\t\t\t\t\tSomeone is calling sub_select_op\n");
-  fclose(fp);
   enum_nested_loop_state rc;
   QEP_operation *op= join_tab->op;
 
@@ -1107,18 +1065,8 @@ sub_select_op(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
 
   if (end_of_records)
   {
-    FILE* fp;
-    fp = fopen("/home/ahmed/do_command.txt", "a+");
-    fprintf(fp, "\t\t\t\t\tIn sub_select_op before calling end_send. Number of records = %d\n", join->send_records);
-    fclose(fp);
     rc= op->end_send();
-    fp = fopen("/home/ahmed/do_command.txt", "a+");
-    fprintf(fp, "\t\t\t\t\tIn sub_select_op after calling end_send. Number of records = %d\n", join->send_records);
-    fclose(fp);
     if (rc >= NESTED_LOOP_OK){
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t\t\t\t\tIn sub_select_op calling sub_select. Number of records = %d\n", join->send_records);
-      fclose(fp);
       rc= sub_select(join, join_tab, end_of_records);
     }
     DBUG_RETURN(rc);
@@ -1145,9 +1093,6 @@ sub_select_op(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
             (((uint32) ((uchar) (A)[5])) << 8) +
             (((uint32) ((uchar) (A)[6])) << 16) +
             (((uint32) ((uchar) (A)[7])) << 24))) <<32));
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t\t\t\t\tIn sub_select_op result = %d.\n",  temp);
-      fclose(fp);
   global_group_by_count = temp;    
   DBUG_RETURN(rc);
 }
@@ -1284,19 +1229,11 @@ enum_nested_loop_state
 sub_select(JOIN *join,JOIN_TAB *join_tab,bool end_of_records)
 {
   srand (time(NULL));
-  FILE* fp;
   double sampling_rate = global_sampling_rate;
-
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "\t\tIn sub_select. Sampling rate = %f. Number of rows = %d\n", sampling_rate, join->send_records);
-  fclose(fp);
   DBUG_ENTER("sub_select");
   join_tab->table->null_row=0;
   if (end_of_records)
   {
-    fp = fopen("/home/ahmed/do_command.txt", "a+");
-    fprintf(fp, "\t\tIn sub_select. end_of_records, sampling_rate = %f. Number of rows = %d\n", sampling_rate, join->send_records);
-    fclose(fp);
     enum_nested_loop_state nls=
       (*join_tab->next_select)(join,join_tab+1,end_of_records);
     DBUG_RETURN(nls);
@@ -1380,16 +1317,10 @@ sub_select(JOIN *join,JOIN_TAB *join_tab,bool end_of_records)
     {
       in_first_read= false;
       error= (*join_tab->read_first_record)(join_tab);
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t>In sub_select. In while, if. Sampling rate = %f. Number of records = %d\n", sampling_rate, join->send_records);
-      fclose(fp);
     }
     else
     {
       error= info->read_record(info);
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t>In sub_select. In while else. Sampling rate = %f. Number of records = %d.\n", sampling_rate, join->send_records);
-      fclose(fp);
     }
 
     DBUG_EXECUTE_IF("bug13822652_1", join->thd->killed= THD::KILL_QUERY;);
@@ -1424,16 +1355,10 @@ sub_select(JOIN *join,JOIN_TAB *join_tab,bool end_of_records)
           {
             if(condition->val_int())
               sat_condition = true;
-            fp = fopen("/home/ahmed/testing.txt", "a+");
-            fprintf(fp, "\t\t\tIn sub_select. condition number %d, found = %d. %s\n", condition->val_int(),condition->val_int(), condition->item_name.m_str);
-            fclose(fp);
           }
           else
           {
             sat_condition = true; 
-            fp = fopen("/home/ahmed/testing.txt", "a+");
-            fprintf(fp, "\t>In sub_select. count = %d. group_by_count = %ld\n", count++, *group_by_count_ptr);
-            fclose(fp);
           }
         }
         else
@@ -1442,23 +1367,11 @@ sub_select(JOIN *join,JOIN_TAB *join_tab,bool end_of_records)
           {
             if(join_tab->condition()->val_int())
               sat_condition = true;
-            fp = fopen("/home/ahmed/testing.txt", "a+");
-            fprintf(fp, "\t\tIn sub_select. sampling rate = %f. condition->val_int() = %d, record is NOT considered\n", sampling_rate, join_tab->condition()->val_int());
-            fclose(fp);
           }
           else
           {
             sat_condition = false;
           }
-        }
-      }
-      else
-      {
-        if(join_tab->condition())
-        {
-          fp = fopen("/home/ahmed/testing.txt", "a+");
-          fprintf(fp, "\t\tIn sub_select. sampling rate = %f. condition->val_int() = %d, record is NOT considered\n", sampling_rate, join_tab->condition()->val_int());
-          fclose(fp);
         }
       }
 
@@ -1487,31 +1400,6 @@ sub_select(JOIN *join,JOIN_TAB *join_tab,bool end_of_records)
       {
         
         cur_val = func->args[0]->val_real();
-        // field_val.push_back(nr);
-          // List<Item> * items = join->fields;
-      
-          // List_iterator_fast<Item> it(*items);
-          // for (Item *item= it++; item; item= it++)
-          // {
-          //   char buffer[MAX_FIELD_WIDTH];
-          //   String *res;
-          //   String buffer_cpy(buffer, sizeof (buffer), &my_charset_bin);
-          //   if ((res=item->val_str(&buffer_cpy)))
-          //   {
-          //     std::string tmp_str (res->ptr());
-          //     std::string field_name (item->item_name.m_str);
-          //     std::string avg_keyword ("avg(");
-          //       FILE* fp;
-          //       fp = fopen("/home/ahmed/do_command.txt", "a+");
-          //       fprintf(fp, "**** buffer = %s. item_name = %s\n", tmp_str.c_str(), item->item_name.m_str);
-          //       fclose(fp);
-          //     if (field_name.substr(0, 4).compare(avg_keyword) != 0)
-          //     {
-          //       group_by_field = tmp_str;
-          //     }
-          //   }
-          // }
-
 
         List<Item> all_items = join->all_fields;
         if(!all_items.is_empty())
@@ -1525,16 +1413,7 @@ sub_select(JOIN *join,JOIN_TAB *join_tab,bool end_of_records)
             if ((res=item->val_str(&buffer_cpy)))
             {
               std::string tmp_str (res->ptr());
-              // std::string field_name (item->item_name.m_str);
-              // std::string avg_keyword ("avg(");
-              FILE* fp;
-              fp = fopen("/home/ahmed/do_command.txt", "a+");
-              fprintf(fp, "#### buffer = %s. item_name = %s\n", tmp_str.c_str(), item->item_name.m_str);
-              fclose(fp);
-              // if (field_name.substr(0, 4).compare(avg_keyword) != 0)
-              // {
-                group_by_field = tmp_str;
-              // }
+              group_by_field = tmp_str;
             }
           }
         }
@@ -1804,10 +1683,6 @@ static int do_sj_reset(SJ_TMP_TABLE *sj_tbl)
 static enum_nested_loop_state
 evaluate_join_record(JOIN *join, JOIN_TAB *join_tab, long * group_by_count)
 {
-
-  FILE* fp;  
-  
-
   bool not_used_in_distinct=join_tab->not_used_in_distinct;
   ha_rows found_records=join->found_records;
   Item *condition= join_tab->condition();
@@ -1824,9 +1699,6 @@ evaluate_join_record(JOIN *join, JOIN_TAB *join_tab, long * group_by_count)
 
   if (condition)
   {
-    // fp = fopen("/home/ahmed/do_command.txt", "a+");
-    // fprintf(fp, "\t\t\t condition number %d, found = %d\n", condition->val_int(), condition->val_int());
-    // fclose(fp);
 
     found= MY_TEST(condition->val_int());
 
@@ -1842,23 +1714,12 @@ evaluate_join_record(JOIN *join, JOIN_TAB *join_tab, long * group_by_count)
   }
   if (found)
   {
-    FILE* fp;
-    fp = fopen("/home/ahmed/do_command.txt", "a+");
-    fprintf(fp, "\t\t\tIn evaluate_join_record. in the check if(found)\n");
-    fclose(fp);
     /*
       There is no condition on this join_tab or the attached pushed down
       condition is true => a match is found.
     */
     while (join_tab->first_unmatched && found)
     {
-
-      FILE* fp;
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp,"join: %p join_tab index: %d table: %s cond: %p\n",
-                join, static_cast<int>(join_tab - join_tab->join->join_tab),
-                join_tab->table->alias, condition);
-      fclose(fp);
       /*
         The while condition is always false if join_tab is not
         the last inner join table of an outer join operation.
@@ -1937,10 +1798,6 @@ evaluate_join_record(JOIN *join, JOIN_TAB *join_tab, long * group_by_count)
 
     if (join_tab->finishes_weedout() && found)
     {
-      FILE* fp;
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t\t\t\tIn evaluate_join_record. in join_tab->finishes_weedout()\n");
-      fclose(fp);
       int res= do_sj_dups_weedout(join->thd, join_tab->check_weed_out_table);
       if (res == -1)
         DBUG_RETURN(NESTED_LOOP_ERROR);
@@ -1949,10 +1806,6 @@ evaluate_join_record(JOIN *join, JOIN_TAB *join_tab, long * group_by_count)
     }
     else if (join_tab->do_loosescan() && join_tab->match_tab->found_match)
     { 
-      FILE* fp;
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t\t\t\tIn evaluate_join_record. in join_tab->do_loosescan()\n");
-      fclose(fp);
       /* Loosescan algorithm requires 'sorted' retrieval of keys. */
       DBUG_ASSERT(join_tab->use_order());
       /* 
@@ -1985,27 +1838,14 @@ evaluate_join_record(JOIN *join, JOIN_TAB *join_tab, long * group_by_count)
 
     if (found)
     {
-      FILE* fp;
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t\t\t\tIn evaluate_join_record. in found2(). Number of records = %d\n", join->send_records);
-      fclose(fp);
       enum enum_nested_loop_state rc;
       /* A match from join_tab is found for the current partial join. */
       rc= (*join_tab->next_select)(join, join_tab+1, 0);
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t\t\t\tIn evaluate_join_record. in found2() after calling sub_select_op. Number of records = %d\n", join->send_records);
-      fclose(fp);
+      
       join->thd->get_stmt_da()->inc_current_row_for_warning();
       if (rc != NESTED_LOOP_OK)
         DBUG_RETURN(rc);
 
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t\t\t\tIn evaluate_join_record. ((AFTER)) in found2(). Number of records = %d\n", join->send_records);
-      fclose(fp);
-
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t\t\t\tIn evaluate_join_record result = %d.\n",  global_group_by_count);
-      fclose(fp);
       if(group_by_count != NULL)
         *group_by_count = global_group_by_count;
 
@@ -2016,9 +1856,6 @@ evaluate_join_record(JOIN *join, JOIN_TAB *join_tab, long * group_by_count)
 
       if (join_tab->do_loosescan() && join_tab->match_tab->found_match)
       {
-        fp = fopen("/home/ahmed/do_command.txt", "a+");
-        fprintf(fp, "\t\t\t\t\tIn evaluate_join_record. in do_loosescan\n");
-        fclose(fp); 
         /* 
            A match was found for a duplicate-generating range of a semijoin. 
            Copy key to be able to determine whether subsequent rows
@@ -2029,11 +1866,7 @@ evaluate_join_record(JOIN *join, JOIN_TAB *join_tab, long * group_by_count)
                  join_tab->loosescan_key_len);
       }
       else if (join_tab->do_firstmatch() && join_tab->match_tab->found_match)
-      {
-
-        fp = fopen("/home/ahmed/do_command.txt", "a+");
-        fprintf(fp, "\t\t\t\t\tIn evaluate_join_record. in do_firstmatch\n");
-        fclose(fp); 
+      { 
         /* 
           We should return to join_tab->firstmatch_return after we have 
           enumerated all the suffixes for current prefix row combination
@@ -2053,10 +1886,6 @@ evaluate_join_record(JOIN *join, JOIN_TAB *join_tab, long * group_by_count)
     }
     else
     {
-      FILE* fp;
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t\t\t\tIn evaluate_join_record. in !found2()\n");
-      fclose(fp);
       join->thd->get_stmt_da()->inc_current_row_for_warning();
       if (join_tab->not_null_compl)
       {
@@ -2067,10 +1896,6 @@ evaluate_join_record(JOIN *join, JOIN_TAB *join_tab, long * group_by_count)
   }
   else
   {
-    FILE* fp;
-    fp = fopen("/home/ahmed/do_command.txt", "a+");
-    fprintf(fp, "\t\t\t\tIn evaluate_join_record. in else2()\n");
-    fclose(fp);
     /*
       The condition pushed down to the table join_tab rejects all rows
       with the beginning coinciding with the current partial join.
@@ -2146,11 +1971,7 @@ evaluate_null_complemented_join_record(JOIN *join, JOIN_TAB *join_tab)
     to the last inner table of the current outer join. This is not deemed to
     have a significant performance impact.
   */
-  
-  FILE* fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "In evaluate_null_complemented_join_record\n");
-  fclose(fp);  
+   
   const enum_nested_loop_state rc= evaluate_join_record(join, join_tab);
   DBUG_RETURN(rc);
 }
@@ -3180,10 +3001,6 @@ pick_table_access_method(JOIN_TAB *tab)
 static enum_nested_loop_state
 end_send(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
 {
-  FILE* fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "Someone is calling end_send\n");
-  fclose(fp);
   DBUG_ENTER("end_send");
   /*
     When all tables are const this function is called with jointab == NULL.
@@ -3196,17 +3013,10 @@ end_send(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
   
   if (!end_of_records)
   {
-    FILE* fp;
-    fp = fopen("/home/ahmed/end_send.txt", "a+");
-    fprintf(fp, "in end_send in if\n");
-    fclose(fp);
     int error;
     if (join->tables &&
         join->join_tab->is_using_loose_index_scan())
     {
-      fp = fopen("/home/ahmed/end_send.txt", "a+");
-      fprintf(fp, "in end_send Copying. Number of records = %d\n", join->send_records);
-      fclose(fp);
       /* Copy non-aggregated fields when loose index scan is used. */
       copy_fields(&join->tmp_table_param);
     }
@@ -3215,13 +3025,7 @@ end_send(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
       DBUG_RETURN(NESTED_LOOP_OK);               // Didn't match having
     error=0;
     if (join->do_send_rows){
-      fp = fopen("/home/ahmed/end_send.txt", "a+");
-      fprintf(fp, "in end_send before updating the resut. Number of records = %d\n", join->send_records);
-      fclose(fp);
       error = join->result->send_data(*fields);
-      fp = fopen("/home/ahmed/end_send.txt", "a+");
-      fprintf(fp, "in end_send after upfating the resutl. Number of records = %d\n", join->send_records);
-      fclose(fp);
     }
     if (error)
       DBUG_RETURN(NESTED_LOOP_ERROR); /* purecov: inspected */
@@ -3423,10 +3227,6 @@ end_send_group(JOIN *join, JOIN_TAB *join_tab __attribute__((unused)),
 static enum_nested_loop_state
 end_write(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
 {
-  FILE* fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "Someon is calling end_write\n");
-  fclose(fp);
   TABLE *const table= join_tab->table;
   DBUG_ENTER("end_write");
 
@@ -3478,10 +3278,6 @@ end:
 static enum_nested_loop_state
 end_update(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
 {
-  FILE* fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "\t\t\t\t\t\tSomeone is calling end_update\n");
-  fclose(fp);
   TABLE *const table= join_tab->table;
   ORDER   *group;
   int	  error;
@@ -3499,10 +3295,7 @@ end_update(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
   copy_fields(join_tab->tmp_table_param);	// Groups are copied twice.
   /* Make a key of group index */
   for (group=table->group ; group ; group=group->next)
-  {
-    fp = fopen("/home/ahmed/do_command.txt", "a+");
-    fprintf(fp, "\t\t\t\t\t\tIn end_update group loop %s\n", group->buff);
-    fclose(fp);    
+  {   
     Item *item= *group->item;
     item->save_org_in_field(group->field);
     /* Store in the used key if the field was 0 */
@@ -3514,10 +3307,6 @@ end_update(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
                                       HA_WHOLE_KEY,
                                       HA_READ_KEY_EXACT))
   {						/* Update old record */
-    fp = fopen("/home/ahmed/do_command.txt", "a+");
-    fprintf(fp, "\t\t\t\t\t\tIn end_update in if(!table)\n");
-    fclose(fp);
-
 
     Item_sum *func = *(join->sum_funcs);
     uchar *res=func->result_field->ptr;
@@ -3530,18 +3319,12 @@ end_update(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
             (((uint32) ((uchar) (A)[5])) << 8) +
             (((uint32) ((uchar) (A)[6])) << 16) +
             (((uint32) ((uchar) (A)[7])) << 24))) <<32));
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t\t\t\t\t\tIn end_update result = %d.\n",  temp);
-      fclose(fp);
 
     restore_record(table,record[1]);
     update_tmptable_sum_func(join->sum_funcs,table);
     if ((error=table->file->ha_update_row(table->record[1],
                                           table->record[0])))
     {
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t\t\t\t\t\tIn end_update in print_error\n");
-      fclose(fp);
       table->file->print_error(error,MYF(0));	/* purecov: inspected */
       DBUG_RETURN(NESTED_LOOP_ERROR);            /* purecov: inspected */
     }
@@ -3561,12 +3344,6 @@ end_update(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
     if (key_part->null_bit)
       memcpy(table->record[0]+key_part->offset, group->buff, 1);
   }
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  if(key_part != NULL)
-    fprintf(fp, "\t\t\t\t\t\tIn end_update group key_part->field %p\n", key_part->field);
-  else
-    fprintf(fp, "\t\t\t\t\t\tIn end_update group key_part->field is NULL\n");
-  fclose(fp);
 
   init_tmptable_sum_functions(join->sum_funcs);
   if (copy_funcs(join_tab->tmp_table_param->items_to_copy, join->thd))
@@ -3597,10 +3374,6 @@ end_update(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
 static enum_nested_loop_state
 end_unique_update(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
 {
-  FILE* fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "Someone is calling end_unique_update\n");
-  fclose(fp);
   TABLE *table= join_tab->table;
   int	  error;
   DBUG_ENTER("end_unique_update");
@@ -3649,10 +3422,6 @@ end_unique_update(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
 enum_nested_loop_state
 end_write_group(JOIN *join, JOIN_TAB *join_tab, bool end_of_records)
 {
-  FILE* fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "Someone is calling end_write_group\n");
-  fclose(fp);
   TABLE *table= join_tab->table;
   int	  idx= -1;
   DBUG_ENTER("end_write_group");
@@ -4814,7 +4583,7 @@ int nChoosek( int n, int k )
         result *= (n-i+1);
         result /= i;
     }
-    
+
     return result;
 }
 
@@ -4839,10 +4608,6 @@ double calc_sigma_theta_c(int N_c, int n, int N, double sigma_d_c, double X_c_ba
     {
       H_c += (1.0/k - 1.0/N_c) * nChoosek(N_c, k) * nChoosek(N-N_c, n-k)/ (1.0 * nChoosek(N, n));
     }
-    FILE* fp;
-    fp = fopen("/home/ahmed/do_command.txt", "a+");
-    fprintf(fp, "Logging: W = %f, H_c %f\n", W, H_c);
-    fclose(fp);
     double sigma_theta_c = (sigma_d_c * (N_c / (N_c -1.0)) * H_c) + ( (X_c_bar * X_c_bar) * (1-W) * W);
     sigma_theta_c = pow(sigma_theta_c, 0.5);
     return sigma_theta_c;
@@ -4860,11 +4625,6 @@ QEP_tmp_table::end_send()
   enum_nested_loop_state rc= NESTED_LOOP_OK;
   TABLE *table= join_tab->table;
   JOIN *join= join_tab->join;
-  
-  FILE* fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "\t\t\tAt the beginning of end_send, Number of rows = %d\n", join->send_records);
-  fclose(fp);
 
   // All records were stored, send them further
   int tmp, new_errno= 0;
@@ -4914,45 +4674,11 @@ QEP_tmp_table::end_send()
     }
     else
     {
-      FILE* fp;
-      fp = fopen("/home/ahmed/do_command.txt", "a+");
-      fprintf(fp, "\t\t\tIn end_send - open. Number of recrods = %d\n", join->send_records);
-      fclose(fp); 
-
       std::map<std::string, int>N_c = join->N_c; //Number of tuples in smaller sample satisfying the condition
       std::map<std::string, int>N = join->N;   //Number of tuples in the orgiginal tuples. N = |D|
       std::map<std::string, int>n = join->n;   //Number of tuples in the sample tuples. n = |S|
       std::map<std::string, double > std_values = join->std_values;           
       std::map<std::string, double > X_c_bar = join->X_c_bar;
-      // //Printing
-
-        fp = fopen("/home/ahmed/do_command.txt", "a+");
-        std::map<std::string, int>::const_iterator it2;
-        for(it2 = N.begin(); it2 != N.end(); it2++) 
-        {
-              fprintf(fp, "Printing N. Dept = %s, count = %d\n", it2->first.c_str(), it2->second);
-        }
-
-        for(it2 = n.begin(); it2 != n.end(); it2++) 
-        {
-              fprintf(fp, "Printing n. Dept = %s, count = %d\n", it2->first.c_str(), it2->second);
-        }
-
-        for(it2 = N_c.begin(); it2 != N_c.end(); it2++) 
-        {
-              fprintf(fp, "Printing N_c. Dept = %s, count = %d\n", it2->first.c_str(), it2->second);
-        }
-
-        std::map<std::string, double>::const_iterator it3;
-        for(it3 = std_values.begin(); it3 != std_values.end(); it3++) 
-        {
-              fprintf(fp, "Printing st_values. Dept = %s, std = %f\n", it3->first.c_str(), it3->second);
-        }
-        for(it3 = X_c_bar.begin(); it3 != X_c_bar.end(); it3++) 
-        {
-              fprintf(fp, "Printing mean. Dept = %s, std = %f\n", it3->first.c_str(), it3->second);
-        }
-        fclose(fp); 
           
           List<Item> * items = join->fields;
           
@@ -4965,14 +4691,9 @@ QEP_tmp_table::end_send()
             String buffer_cpy(buffer, sizeof (buffer), &my_charset_bin);
             if ((res=item->val_str(&buffer_cpy)))
             {
-                FILE* fp;
                 if(item->str_value.ptr() != NULL)
                 {
                   char_ptr = res->ptr();
-                  fp = fopen("/home/ahmed/do_command.txt", "a+");
-                  // fprintf(fp, "\t\t\tIn end_send, res->ptr() = %s. item->str_value.ptr() = %s. str.length() = %d. %s\n", res->ptr(), item->str_value.ptr(), item->str_value.length(), item->item_name.m_str);
-                  fprintf(fp, "char_ptr = %s\n", char_ptr);
-                  fclose(fp);
                   break;
                 }
             }
@@ -4987,7 +4708,6 @@ QEP_tmp_table::end_send()
               String buffer_cpy(buffer, sizeof (buffer), &my_charset_bin);
               if ((res=item->val_str(&buffer_cpy)))
               {
-                  FILE* fp;
                   if(item->str_value.ptr() == NULL)
                   {
                     std::string key(char_ptr);
@@ -5010,10 +4730,6 @@ QEP_tmp_table::end_send()
                     std::ostringstream strs;
                     strs << sigma_theta_c;
                     st_dev = st_dev + strs.str() + std::string(")");
-                    fp = fopen("/home/ahmed/do_command.txt", "a+");
-                    // fprintf(fp, "\t\t\tIn end_send, res->ptr() = %s. item->str_value.ptr() = %s. str.length() = %d. %s\n", res->ptr(), item->str_value.ptr(), item->str_value.length(), item->item_name.m_str);
-                    fprintf(fp, "Testing!!! %s. %f. %s\n", char_ptr, sigma_theta_c, st_dev.c_str());
-                    fclose(fp);
                     item->add_sampling = true;
                     item ->sampling_std = const_cast<char*> (st_dev.c_str());
                     item->sampling_std_size = st_dev.length();
@@ -5024,9 +4740,6 @@ QEP_tmp_table::end_send()
           }
 
           rc= evaluate_join_record(join, join_tab);
-          fp = fopen("/home/ahmed/do_command.txt", "a+");
-          fprintf(fp, "\t\t\tIn end_send - close. Number of recrods = %d\n", join->send_records);
-          fclose(fp); 
     }
   }
 

@@ -1027,10 +1027,6 @@ bool do_command(THD *thd)
   }
 
   packet= (char*) net->read_pos;
-  FILE *fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "Query is: %s\n",  packet);
-  fclose(fp);
   //Converting packet_str to upper case 
   for (std::string::iterator it = packet_str.begin(); it != packet_str.end(); ++ it)
     *it = toupper(*it);
@@ -1043,9 +1039,6 @@ bool do_command(THD *thd)
     sampling_rate = strtod (trim_inplace(query_cpy).c_str(), NULL);
     ((char*)packet)[sampling_index] = ';';
     ((char*)packet)[sampling_index+1] = '\0';
-    fp = fopen("/home/ahmed/do_command.txt", "a+");
-    fprintf(fp, "\t Extra key word is detected the query now is %s, rate is %f, sampling_index is %d\n",  (char*)(net->read_pos), sampling_rate, sampling_index);
-    fclose(fp);
   }
 
   /*
@@ -1082,11 +1075,7 @@ bool do_command(THD *thd)
 
   //return_value= dispatch_command(command, thd, packet+1, (uint) (packet_length-1 - (smapling_used ? UNDER_SAMPLING_RATE_SIZE : 0)));
   return_value= dispatch_command(command, thd, packet+1, (uint) (smapling_used ? sampling_index : packet_length-1), sampling_rate);
-  //FILE *fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "Command on %s = %d (%s). return_value = %d, packet_length = %d\n",  vio_description(net->vio), command,
-                     command_name[command].str, return_value, packet_length);
-  fclose(fp);
+  
 out:
   /* The statement instrumentation must be closed in all cases. */
   DBUG_ASSERT(thd->m_digest == NULL);
@@ -1191,10 +1180,7 @@ bool dispatch_command(enum enum_server_command command, THD *thd,
   bool error= 0;
   DBUG_ENTER("dispatch_command");
   DBUG_PRINT("info",("packet: '%*.s'; command: %d", packet_length, packet, command));
-  FILE *fp;
-  fp = fopen("/home/ahmed/do_command.txt", "a+");
-  fprintf(fp, "In dispatch_command, sampling rate is %f\n", sampling_rate);
-  fclose(fp);
+  
   /* SHOW PROFILE instrumentation, begin */
 #if defined(ENABLED_PROFILING)
   thd->profiling.start_new_query();
