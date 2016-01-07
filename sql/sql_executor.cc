@@ -1350,6 +1350,29 @@ sub_select(JOIN *join,JOIN_TAB *join_tab,bool end_of_records)
   std::map<std::string, std::list<double> > field_val;
   
   long group_by_count = 0;
+  int cur_count = 1;
+
+  int total_num_records = join_tab->records;
+  int num_samples = (int)(total_num_records * sampling_rate);
+  int indexes [num_samples];
+  int i;
+  for(i = 0; i < num_samples; i++)
+  {
+    indexes[i] = i;
+  }
+
+  for(; i < total_num_records; i++)
+  {
+    int j = rand() % (i+1);
+    if(j < num_samples)
+      indexes[j] = i;
+  }
+  
+  std::sort(indexes, indexes + num_samples);
+
+  int ind = 0;
+  int cur_num_records = 0;
+  rc= NESTED_LOOP_OK;
   while (rc == NESTED_LOOP_OK && join->return_tab >= join_tab)
   {
     int error;
@@ -1385,37 +1408,72 @@ sub_select(JOIN *join,JOIN_TAB *join_tab,bool end_of_records)
       bool sample_chosen = false;
       bool sat_condition = false;
       //Choose the element or ignore it with probability sampling_rate
-      double r = rand() % 100 / 100.0;
-      if(r <= sampling_rate)
+      if(ind < num_samples)
       {
-        sample_chosen = true;
-        if (join_tab->keep_current_rowid)
-          join_tab->table->file->position(join_tab->table->record[0]);
-        long * group_by_count_ptr = (long*) calloc (1,sizeof(long));
-        rc= evaluate_join_record(join, join_tab, group_by_count_ptr);
-        
-        Item *condition= join_tab->condition();
-        if(condition){
-          if(condition->val_int())
-            sat_condition = true;
-          fp = fopen("/home/ahmed/do_command.txt", "a+");
-          fprintf(fp, "\t\t\tIn sub_select. condition number %d, found = %d. %s\n", condition->val_int(),condition->val_int(), condition->item_name.m_str);
-          fclose(fp);
+        if(cur_num_records == indexes[ind])      
+        {
+          ind++;
+          sample_chosen = true;
+          if (join_tab->keep_current_rowid)
+            join_tab->table->file->position(join_tab->table->record[0]);
+          long * group_by_count_ptr = (long*) calloc (1,sizeof(long));
+          rc= evaluate_join_record(join, join_tab, group_by_count_ptr);
+          
+          Item *condition= join_tab->condition();
+          if(condition)
+          {
+            if(condition->val_int())
+              sat_condition = true;
+            fp = fopen("/home/ahmed/testing.txt", "a+");
+            fprintf(fp, "\t\t\tIn sub_select. condition number %d, found = %d. %s\n", condition->val_int(),condition->val_int(), condition->item_name.m_str);
+            fclose(fp);
+          }
+          else
+          {
+            sat_condition = true; 
+            fp = fopen("/home/ahmed/testing.txt", "a+");
+            fprintf(fp, "\t>In sub_select. count = %d. group_by_count = %ld\n", count++, *group_by_count_ptr);
+            fclose(fp);
+          }
         }
         else
         {
-          sat_condition = true; 
+          if(join_tab->condition())
+          {
+            if(join_tab->condition()->val_int())
+              sat_condition = true;
+            fp = fopen("/home/ahmed/testing.txt", "a+");
+            fprintf(fp, "\t\tIn sub_select. sampling rate = %f. condition->val_int() = %d, record is NOT considered\n", sampling_rate, join_tab->condition()->val_int());
+            fclose(fp);
+          }
+          else
+          {
+            sat_condition = false;
+          }
         }
-        fp = fopen("/home/ahmed/do_command.txt", "a+");
-        fprintf(fp, "\t>In sub_select. count = %d. group_by_count = %ld\n", count++, *group_by_count_ptr);
-        fclose(fp);
       }
       else
       {
-        fp = fopen("/home/ahmed/do_command.txt", "a+");
-        fprintf(fp, "\t\tIn sub_select. sampling rate = %f, r = %f, record is NOT considered\n", sampling_rate,r);
-        fclose(fp);
+        if(join_tab->condition())
+        {
+          fp = fopen("/home/ahmed/testing.txt", "a+");
+          fprintf(fp, "\t\tIn sub_select. sampling rate = %f. condition->val_int() = %d, record is NOT considered\n", sampling_rate, join_tab->condition()->val_int());
+          fclose(fp);
+        }
       }
+
+      Item *condition= join_tab->condition();
+      if(condition)
+      {
+        if(condition->val_int())
+          sat_condition = true;
+      }
+      else
+      {
+        sat_condition = true;
+      }
+
+      cur_num_records++;
 
       //Graping information about the current record
       Item_sum *func;
@@ -1521,22 +1579,24 @@ sub_select(JOIN *join,JOIN_TAB *join_tab,bool end_of_records)
         }
       }
 
-      
-      //Add the cur_val of the list of the values in the current group
-      std::map<std::string, std::list<double> >::const_iterator it2 = field_val.find(group_by_field);
-      if(group_by_field.compare("") != 0 && group_by_field.compare("0") != 0)
+      if(sat_condition)
       {
-        if(field_val.end() == it2)  //There is a list with previous values
+        //Add the cur_val of the list of the values in the current group
+        std::map<std::string, std::list<double> >::const_iterator it2 = field_val.find(group_by_field);
+        if(group_by_field.compare("") != 0 && group_by_field.compare("0") != 0)
         {
-          std::list<double> tmp_list;
-          tmp_list.push_back(cur_val);
-          field_val.insert({group_by_field, tmp_list});  
-        } 
-        else
-        {
-          field_val[it2->first].push_back(cur_val);
+          if(field_val.end() == it2)  //There is a list with previous values
+          {
+            std::list<double> tmp_list;
+            tmp_list.push_back(cur_val);
+            field_val.insert({group_by_field, tmp_list});  
+          } 
+          else
+          {
+            field_val[it2->first].push_back(cur_val);
+          }
+          // tmp_list.push_back(cur_val);  
         }
-        // tmp_list.push_back(cur_val);  
       }
     }
   }
@@ -4805,7 +4865,6 @@ QEP_tmp_table::end_send()
   fprintf(fp, "\t\t\tAt the beginning of end_send, Number of rows = %d\n", join->send_records);
   fclose(fp);
 
-
   // All records were stored, send them further
   int tmp, new_errno= 0;
 
@@ -4832,13 +4891,6 @@ QEP_tmp_table::end_send()
   table->reginfo.lock_type= TL_UNLOCK;
 
   bool in_first_read= true;
-
-  std::map<std::string, int>::const_iterator it_N_c = join->N_c.begin();
-  std::map<std::string, int>::const_iterator it_N = join->N.begin();
-  std::map<std::string, int>::const_iterator it_n = join->n.begin();
-  std::map<std::string, double>::const_iterator it_std = join->std_values.begin();
-  std::map<std::string, double>::const_iterator it_X_c = join->X_c_bar.begin();
-
   while (rc == NESTED_LOOP_OK)
   {
     int error;
@@ -4854,7 +4906,7 @@ QEP_tmp_table::end_send()
       rc= NESTED_LOOP_ERROR;
     else if (error < 0)
       break;
-    else if (join->thd->killed)		  // Aborted by user
+    else if (join->thd->killed)     // Aborted by user
     {
       join->thd->send_kill_message();
       rc= NESTED_LOOP_KILLED;
@@ -4903,31 +4955,8 @@ QEP_tmp_table::end_send()
           
           List<Item> * items = join->fields;
           
-          // List_iterator_fast<Item> it(*items);
-          // const char* char_ptr;
-          // for (Item *item= it++; item; item= it++)
-          // {
-          //   char buffer[MAX_FIELD_WIDTH];
-          //   String *res;
-          //   String buffer_cpy(buffer, sizeof (buffer), &my_charset_bin);
-          //   if ((res=item->val_str(&buffer_cpy)))
-          //   {
-          //       FILE* fp;
-          //       if(item->str_value.ptr() != NULL)
-          //       {
-          //         char_ptr = res->ptr();
-          //         fp = fopen("/home/ahmed/do_command.txt", "a+");
-          //         // fprintf(fp, "\t\t\tIn end_send, res->ptr() = %s. item->str_value.ptr() = %s. str.length() = %d. %s\n", res->ptr(), item->str_value.ptr(), item->str_value.length(), item->item_name.m_str);
-          //         fprintf(fp, "char_ptr = %s\n", char_ptr);
-          //         fclose(fp);
-          //         break;
-          //       }
-          //   }
-          // }
-          
-
-
           List_iterator_fast<Item> it(*items);
+          const char* char_ptr = NULL;
           for (Item *item= it++; item; item= it++)
           {
             char buffer[MAX_FIELD_WIDTH];
@@ -4936,33 +4965,60 @@ QEP_tmp_table::end_send()
             if ((res=item->val_str(&buffer_cpy)))
             {
                 FILE* fp;
-                if(item->str_value.ptr() == NULL)
+                if(item->str_value.ptr() != NULL)
                 {
-                  int N_c = it_N_c->second;
-                  // it_N_c++;
-                  int n = it_n->second;
-                  it_n++;
-                  int N = it_N ->second;
-                  it_N++;
-                  double sigma_d_c = it_std->second;
-                  it_std++;
-                  double X_c_bar = it_X_c->second;
-                  it_X_c++;
-                  double sigma_theta_c = calc_sigma_theta_c(N_c, n, N, sigma_d_c, X_c_bar);
-                  std::string st_dev (" (STDEV ");
-                  std::ostringstream strs;
-                  strs << sigma_theta_c;
-                  st_dev = st_dev + strs.str() + std::string(")");
+                  char_ptr = res->ptr();
                   fp = fopen("/home/ahmed/do_command.txt", "a+");
                   // fprintf(fp, "\t\t\tIn end_send, res->ptr() = %s. item->str_value.ptr() = %s. str.length() = %d. %s\n", res->ptr(), item->str_value.ptr(), item->str_value.length(), item->item_name.m_str);
-                  fprintf(fp, "Testing!!! %s. %f. %s\n", it_N_c->first.c_str(), sigma_theta_c, st_dev.c_str());
-                  it_N_c++;
+                  fprintf(fp, "char_ptr = %s\n", char_ptr);
                   fclose(fp);
-                  item->add_sampling = true;
-                  item ->sampling_std = const_cast<char*> (st_dev.c_str());
-                  item->sampling_std_size = st_dev.length();
                   break;
                 }
+            }
+          }
+          List_iterator_fast<Item> it_double(*items);
+          if(char_ptr != NULL)
+          {
+            for (Item *item= it_double++; item; item= it_double++)
+            {
+              char buffer[MAX_FIELD_WIDTH];
+              String *res;
+              String buffer_cpy(buffer, sizeof (buffer), &my_charset_bin);
+              if ((res=item->val_str(&buffer_cpy)))
+              {
+                  FILE* fp;
+                  if(item->str_value.ptr() == NULL)
+                  {
+                    std::string key(char_ptr);
+                    std::map<std::string, int>::const_iterator it = join->N_c.find(key);
+                    if(it == join->N_c.end())
+                      continue;
+                    int N_c = it->second;
+                    if(N_c == 1)
+                      continue;
+                    it = join->n.find(key);
+                    int n = it->second;
+                    it = join->N.find(key);
+                    int N = it ->second;
+                    std::map<std::string, double>::const_iterator it2 = join->std_values.find(key);
+                    double sigma_d_c = it2->second;
+                    it2 = join->X_c_bar.find(key);
+                    double X_c_bar = it2->second;
+                    double sigma_theta_c = calc_sigma_theta_c(N_c, n, N, sigma_d_c, X_c_bar);
+                    std::string st_dev (" (STDEV ");
+                    std::ostringstream strs;
+                    strs << sigma_theta_c;
+                    st_dev = st_dev + strs.str() + std::string(")");
+                    fp = fopen("/home/ahmed/do_command.txt", "a+");
+                    // fprintf(fp, "\t\t\tIn end_send, res->ptr() = %s. item->str_value.ptr() = %s. str.length() = %d. %s\n", res->ptr(), item->str_value.ptr(), item->str_value.length(), item->item_name.m_str);
+                    fprintf(fp, "Testing!!! %s. %f. %s\n", char_ptr, sigma_theta_c, st_dev.c_str());
+                    fclose(fp);
+                    item->add_sampling = true;
+                    item ->sampling_std = const_cast<char*> (st_dev.c_str());
+                    item->sampling_std_size = st_dev.length();
+                    break;
+                  }
+              }
             }
           }
 
@@ -4979,6 +5035,7 @@ QEP_tmp_table::end_send()
 
   return rc;
 }
+
 
 
 
