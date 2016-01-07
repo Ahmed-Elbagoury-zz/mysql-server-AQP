@@ -4814,6 +4814,7 @@ int nChoosek( int n, int k )
         result *= (n-i+1);
         result /= i;
     }
+    
     return result;
 }
 
